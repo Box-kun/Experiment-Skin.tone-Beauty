@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exp 2 Practice</title>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.2/dist/FileSaver.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="buttons">
+    <label for="case-number" class="label">কোড:</label>
+    <input type="text" autocomplete="off" name="text" class="input" placeholder="insert Code" id="case-number">
+    <button id="start-button" onclick="start()">Start</button>
+    <button onclick="downloadResults()">Finish</button>
+</div>
+
+<div class="container" id="top-row">
+    <div id="box11" class="box"></div>
+    <div id="box12" class="box"></div>
+    <div id="box13" class="box"></div>
+    <div id="box14" class="box"></div>
+    <div id="box15" class="box"></div>
+</div>
+
+<div class="container" id="bottom-row">
+    <div id="box21" class="box">
+        <div class="caption">Very Ugly (1)</div>
+    </div>
+    <div id="box22" class="box">
+        <div class="caption">Ugly (2)</div>
+    </div>
+    <div id="box23" class="box">
+        <div class="caption">Neutral (3)</div>
+    </div>
+    <div id="box24" class="box">
+        <div class="caption">Beautiful (4)</div>
+    </div>
+    <div id="box25" class="box">
+        <div class="caption">Very Beautiful (5)</div>
+    </div>
+</div>
+
+<script>
+    let startTime;
+let endTime;
+let caseNumber;
+let initialMapping = {}; // To track initial image positions
+let finalMapping = {}; // To track final image positions
+
+const draggables = ['1', '2', '3', '4', '5']; // List of image IDs
+const topBoxes = document.querySelectorAll('#top-row .box');
+const bottomBoxes = document.querySelectorAll('#bottom-row .box');
+
+// Fisher-Yates Shuffle function to randomize image positions
+function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+// Function to randomize images on page load
+function randomizeImages() {
+    const shuffledImages = shuffle([...draggables]);
+
+    // Assign randomized images to the top boxes
+    topBoxes.forEach((box, index) => {
+        const imgElement = document.createElement('img');
+        imgElement.src = `${shuffledImages[index]}.jpg`;
+        imgElement.id = shuffledImages[index];
+        imgElement.classList.add('draggable');
+        imgElement.setAttribute('draggable', 'false');
+        box.appendChild(imgElement);
+        
+        // Record the initial positions
+        initialMapping[box.id] = imgElement.id;
+    });
+}
+
+// Call randomizeImages when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', randomizeImages);
+
+// Function to start the experiment
+function start() {
+    startTime = new Date();
+    caseNumber = document.getElementById("case-number").value.trim();
+
+    if (!caseNumber) {
+        alert("Please enter a case number before starting.");
+        return;
+    }
+
+    // Make images draggable
+    const draggableImages = document.querySelectorAll('.draggable');
+    draggableImages.forEach(draggable => {
+        draggable.setAttribute('draggable', 'true');
+    });
+
+    // Disable the start button after starting
+    document.getElementById("start-button").disabled = true;
+}
+
+// Add drag event listeners to the images
+document.addEventListener('dragstart', (e) => {
+    if (e.target.classList.contains('draggable')) {
+        e.target.classList.add('dragging');
+    }
+});
+
+document.addEventListener('dragend', (e) => {
+    if (e.target.classList.contains('draggable')) {
+        e.target.classList.remove('dragging');
+    }
+});
+
+// Add dragover event listeners to the bottom boxes
+bottomBoxes.forEach(box => {
+    box.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const dragging = document.querySelector('.dragging');
+        if (dragging && box.querySelector('img') === null) {
+            box.appendChild(dragging);
+        }
+    });
+});
+
+// Record the final positions of images
+function recordFinalBoxes() {
+    finalMapping = {}; // Reset final mapping
+    bottomBoxes.forEach(box => {
+        const img = box.querySelector('img');
+        if (img) {
+            finalMapping[box.id] = img.id;
+        }
+    });
+}
+
+// Function to format the mappings for download
+function formatMappings() {
+    let initialData = "Initial Mapping:\n";
+    for (const [box, img] of Object.entries(initialMapping)) {
+        initialData += `Box: ${box}, Image: ${img}\n`;
+    }
+
+    let finalData = "\nFinal Mapping:\n";
+    for (const [box, img] of Object.entries(finalMapping)) {
+        finalData += `Box: ${box}, Image: ${img}\n`;
+    }
+
+    return initialData + finalData;
+}
+
+// Function to stop the experiment
+function stop() {
+    endTime = new Date();
+}
+
+// Function to download the results
+function downloadResults() {
+    stop();
+
+    if (!startTime) {
+        alert("Please start the experiment before finishing.");
+        return;
+    }
+
+    // Record final positions
+    recordFinalBoxes();
+
+    // Calculate elapsed time
+    const timeElapsed = (endTime - startTime) / 1000; // Convert to seconds
+
+    // Format the data
+    const data = `Case Number: ${caseNumber}\n` + formatMappings() + `\nTime Elapsed: ${timeElapsed} seconds`;
+
+    // Create and trigger the download
+    const blob = new Blob([data], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Ranking Results - ${caseNumber}_Practice.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    // Optionally, disable dragging after download
+    const draggableImages = document.querySelectorAll('.draggable');
+    draggableImages.forEach(draggable => {
+        draggable.setAttribute('draggable', 'false');
+    });
+}
+
+</script>
+</body>
+</html>
